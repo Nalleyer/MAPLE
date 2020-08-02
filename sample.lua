@@ -3,7 +3,10 @@ mp_state = {
     num = 233,
     table = {
         a = 1,
-        b = false
+        b = false,
+        table2 = {
+            haha = "hua q",
+        },
     }
 }
 
