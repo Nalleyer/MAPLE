@@ -1,0 +1,18 @@
+[package]
+name = "maple"
+version = "0.1.0"
+authors = ["nalleyer <nalleyer@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ggez = "0.5"
+clap = "2"
+imgui = "0.4"
+imgui-gfx-renderer = "0.4"
+
+gfx_core = "0.9.2"
+gfx_device_gl = "0.16.2"
+
+rlua = "0.17"
