@@ -1,11 +1,4 @@
-use rlua::{
-    prelude::FromLua, Context, Function, Lua, MetaMethod, Result, Table, UserData, UserDataMethods,
-    Value, Variadic,
-};
-
-use imgui::*;
-
-use crate::imgui_wrapper::*;
+use rlua::{Function, Lua, Table, Value};
 
 #[derive(Debug)]
 enum InfoItem {
@@ -16,7 +9,7 @@ struct Info {
     items: Vec<InfoItem>,
 }
 
-fn display_value<'lua>(value: &'lua Value) -> String {
+fn display_value(value: &Value) -> String {
     match value {
         Value::Table(_) => String::from("table"),
         Value::String(str) => String::from(str.to_str().unwrap_or("")),
@@ -32,16 +25,20 @@ impl Info {
     pub fn build(&mut self, lua_table: Table, depth: u32) {
         for pair in lua_table.pairs::<Value, Value>() {
             let (key, value) = pair.expect("getting pair");
+            let indent = " ".repeat((depth * 2) as usize);
             match value {
                 Value::Table(inner_table) => {
-                    self.items
-                        .push(InfoItem::Text(format!("{}: ", display_value(&key))));
+                    self.items.push(InfoItem::Text(format!(
+                        "{}{}: ",
+                        indent,
+                        display_value(&key)
+                    )));
                     self.build(inner_table, depth + 1);
                 }
                 _ => {
                     self.items.push(InfoItem::Text(format!(
                         "{}{}: {}",
-                        " ".repeat((depth * 2) as usize),
+                        indent,
                         display_value(&key),
                         display_value(&value)
                     )));
@@ -87,7 +84,6 @@ impl MpLua {
     }
 
     pub fn make_render<'ui>(&self, ui: &'ui imgui::Ui) -> Box<dyn FnOnce() -> () + 'ui> {
-        let mut ui_str = String::from("");
         let info = self.build_info();
         Box::new(move || {
             // ui.text(ui_str);

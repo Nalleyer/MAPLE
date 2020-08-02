@@ -1,20 +1,20 @@
-use std::io::Result;
+use std::error::Error;
 
+use crate::lua::MpLua;
 use ggez::conf;
 use ggez::event::{self, EventHandler, KeyCode, KeyMods, MouseButton};
 use ggez::graphics;
 use ggez::nalgebra as na;
 use ggez::{Context, GameResult};
-use crate::lua::{MpLua};
 
-use crate::imgui_wrapper::{ImGuiWrapper};
+use crate::imgui_wrapper::ImGuiWrapper;
 
 use std::fs;
 
-pub fn run(input_path: &str) -> Result<()> {
+pub fn run(input_path: &str) -> Result<(), Box<dyn Error>> {
     let file_content = fs::read_to_string(&input_path)?;
     let mp_lua = MpLua::new(&file_content);
-    ggez_main(mp_lua);
+    ggez_main(mp_lua)?;
     Ok(())
 }
 
@@ -126,7 +126,7 @@ impl EventHandler for MainState {
     }
 }
 
-pub fn ggez_main<'lua>(mp_lua: MpLua) -> ggez::GameResult {
+pub fn ggez_main(mp_lua: MpLua) -> ggez::GameResult {
     let cb = ggez::ContextBuilder::new("super_simple with imgui", "ggez")
         .window_setup(conf::WindowSetup::default().title("super_simple with imgui"))
         .window_mode(

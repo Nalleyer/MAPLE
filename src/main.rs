@@ -1,12 +1,12 @@
 use clap::{App, Arg, SubCommand};
 
-mod run;
-mod lua;
 mod imgui_wrapper;
+mod lua;
+mod run;
 
 use crate::run::run;
 
-fn main() -> std::io::Result<()> {
+fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("maple")
         .version("0.1.0")
         .author("nalleyer")
@@ -16,10 +16,7 @@ fn main() -> std::io::Result<()> {
                 .about("run you lua folder or file")
                 .version("0.1.0")
                 .author("nalleyer")
-                .arg(
-                    Arg::with_name("INPUT")
-                        .required(true)
-                ),
+                .arg(Arg::with_name("INPUT").required(true)),
         )
         .get_matches();
 
