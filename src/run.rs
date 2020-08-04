@@ -4,7 +4,6 @@ use crate::lua::MpLua;
 use ggez::conf;
 use ggez::event::{self, EventHandler, KeyCode, KeyMods, MouseButton};
 use ggez::graphics;
-use ggez::nalgebra as na;
 use ggez::{Context, GameResult};
 
 use crate::imgui_wrapper::ImGuiWrapper;

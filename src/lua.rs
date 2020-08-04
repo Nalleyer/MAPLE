@@ -76,7 +76,7 @@ impl UiSelection {
             let text = selection_table.get::<_, String>("text")?;
             self.items.push(UiSelectionItem::Button {
                 index: index as usize,
-                text: text,
+                text,
             })
         }
         Ok(())
@@ -93,7 +93,7 @@ impl MpLua {
         let lua = Lua::new();
         let path = PathBuf::from(entry_file);
         let mut mp_lua = MpLua {
-            lua: lua,
+            lua,
             entry_file: path,
         };
         mp_lua.add_require_path().unwrap();
@@ -169,15 +169,14 @@ impl MpLua {
     }
 
     pub fn run_selection(&self, index: usize) -> rlua::Result<()> {
-        &self.lua.context(|lua_ctx| {
+        self.lua.context(|lua_ctx| {
             let globals = lua_ctx.globals();
             let mp_selection = globals.get::<_, Table>("mp_selection")?;
             let func = mp_selection
                 .get::<_, Table>(index)?
                 .get::<_, Function>("callback")?;
             func.call::<(), ()>(())
-        })?;
-        Ok(())
+        })
     }
 
     pub fn make_slection_render<'ui>(
