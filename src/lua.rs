@@ -11,6 +11,12 @@ enum UiStatusItem {
     Text(String),
 }
 
+pub fn log_lua_result(result: &rlua::Result<()>) {
+    if let Err(e) = result {
+        println!("[LuaError]{}", e);
+    }
+}
+
 struct UiStatus {
     items: Vec<UiStatusItem>,
 }
@@ -28,9 +34,9 @@ fn display_value(value: &Value) -> String {
 }
 
 impl UiStatus {
-    pub fn build(&mut self, lua_table: Table, depth: u32) {
+    pub fn build(&mut self, lua_table: Table, depth: u32) -> rlua::Result<()> {
         for pair in lua_table.pairs::<Value, Value>() {
-            let (key, value) = pair.expect("getting pair");
+            let (key, value) = pair?;
             let indent = " ".repeat((depth * 2) as usize);
             match value {
                 Value::Table(inner_table) => {
@@ -39,7 +45,7 @@ impl UiStatus {
                         indent,
                         display_value(&key)
                     )));
-                    self.build(inner_table, depth + 1);
+                    self.build(inner_table, depth + 1)?;
                 }
                 _ => {
                     self.items.push(UiStatusItem::Text(format!(
@@ -50,8 +56,8 @@ impl UiStatus {
                     )));
                 }
             }
-            // ...
         }
+        Ok(())
     }
 }
 
@@ -64,17 +70,16 @@ struct UiSelection {
 }
 
 impl UiSelection {
-    pub fn build(&mut self, lua_table: Table) {
+    pub fn build(&mut self, lua_table: Table) -> rlua::Result<()> {
         for pair in lua_table.pairs::<Integer, Table>() {
-            let (index, selection_table) = pair.expect("getting pair");
-            let text = selection_table
-                .get::<_, String>("text")
-                .expect("getting selection text");
+            let (index, selection_table) = pair?;
+            let text = selection_table.get::<_, String>("text")?;
             self.items.push(UiSelectionItem::Button {
                 index: index as usize,
                 text: text,
             })
         }
+        Ok(())
     }
 }
 
@@ -98,12 +103,8 @@ impl MpLua {
 
     fn load(&mut self) -> Result<(), Box<dyn Error>> {
         let file_content = fs::read_to_string(&self.entry_file)?;
-        self.lua.context(|lua_ctx| {
-            lua_ctx
-                .load(&file_content)
-                .exec()
-                .expect("loading lua files")
-        });
+        self.lua
+            .context(|lua_ctx| lua_ctx.load(&file_content).exec())?;
         Ok(())
     }
 
@@ -117,87 +118,88 @@ impl MpLua {
         );
         println!("{}", lua);
 
-        self.lua.context(|lua_ctx| {
-            lua_ctx.load(&lua).exec().expect("add require path to lua");
-        });
+        self.lua.context(|lua_ctx| lua_ctx.load(&lua).exec())?;
         Ok(())
     }
 
-    fn build_ui_status(&self) -> UiStatus {
+    fn build_ui_status(&self) -> rlua::Result<UiStatus> {
         let mut info = UiStatus { items: vec![] };
         self.lua.context(|lua_ctx| {
             let globals = lua_ctx.globals();
-            let func_update = globals
-                .get::<_, Function>("update")
-                .expect("gettting lua entry");
-            func_update.call::<_, ()>(0).expect("calling update");
-            let state = globals
-                .get::<_, Table>("mp_state")
-                .expect("getting mp_state");
-            info.build(state, 0u32);
-        });
+            let func_update = globals.get::<_, Function>("update")?;
+            func_update.call::<_, ()>(0)?;
+            let state = globals.get::<_, Table>("mp_state")?;
+            info.build(state, 0u32)?;
+            Ok(())
+        })?;
 
-        info
+        Ok(info)
     }
 
-    fn build_ui_selection(&self) -> UiSelection {
+    fn build_ui_selection(&self) -> rlua::Result<UiSelection> {
         let mut selection = UiSelection { items: vec![] };
         self.lua.context(|lua_ctx| {
             let globals = lua_ctx.globals();
-            let mp_selection = globals
-                .get::<_, Table>("mp_selection")
-                .expect("getting mp_selection");
-            selection.build(mp_selection);
-            // info.build(state, 0u32);
-        });
-
-        selection
+            let mp_selection = globals.get::<_, Table>("mp_selection")?;
+            selection.build(mp_selection)?;
+            Ok(())
+        })?;
+        Ok(selection)
     }
 
     pub fn make_status_render<'ui>(&self, ui: &'ui imgui::Ui) -> Box<dyn FnOnce() -> () + 'ui> {
-        let info = self.build_ui_status();
-        Box::new(move || {
-            // ui.text(ui_str);
-            for item in info.items {
-                match item {
-                    UiStatusItem::Text(text) => {
-                        ui.text(text);
+        match self.build_ui_status() {
+            Ok(status) => {
+                Box::new(move || {
+                    // ui.text(ui_str);
+                    for item in status.items {
+                        match item {
+                            UiStatusItem::Text(text) => {
+                                ui.text(text);
+                            }
+                        }
                     }
-                }
+                })
             }
-        })
+            Err(e) => {
+                println!("{:?}", e);
+                Box::new(move || {})
+            }
+        }
     }
 
-    pub fn run_selection(&self, index: usize) {
+    pub fn run_selection(&self, index: usize) -> rlua::Result<()> {
         &self.lua.context(|lua_ctx| {
             let globals = lua_ctx.globals();
-            let mp_selection = globals
-                .get::<_, Table>("mp_selection")
-                .expect("renderer get mp_selection");
+            let mp_selection = globals.get::<_, Table>("mp_selection")?;
             let func = mp_selection
-                .get::<_, Table>(index)
-                .expect("renderer get table")
-                .get::<_, Function>("callback")
-                .expect("renderer get callback");
-            func.call::<(), ()>(()).expect("renderer call callback");
-        });
+                .get::<_, Table>(index)?
+                .get::<_, Function>("callback")?;
+            func.call::<(), ()>(())
+        })?;
+        Ok(())
     }
 
     pub fn make_slection_render<'ui>(
         &'ui self,
         ui: &'ui imgui::Ui,
     ) -> Box<dyn FnOnce() -> () + 'ui> {
-        let selection = self.build_ui_selection();
-        Box::new(move || {
-            for item in selection.items {
-                match item {
-                    UiSelectionItem::Button { index, text } => {
-                        if ui.button(&im_str!("{}", &text), [100f32, 30f32]) {
-                            self.run_selection(index);
+        match self.build_ui_selection() {
+            Ok(selection) => Box::new(move || {
+                for item in selection.items {
+                    match item {
+                        UiSelectionItem::Button { index, text } => {
+                            if ui.button(&im_str!("{}", &text), [100f32, 30f32]) {
+                                log_lua_result(&self.run_selection(index));
+                            }
                         }
                     }
                 }
+            }),
+            Err(e) => {
+                println!("{:?}", e);
+                Box::new(move || {})
             }
-        })
+        }
     }
 }
