@@ -14,7 +14,13 @@ mp_selection = {
     {
         text = "add_num",
         callback = function()
-            state.num = state.num + 1
+            mp_state.num = mp_state.num + 1
+        end
+    },
+    {
+        text = "sub num 2",
+        callback = function()
+            mp_state.num = mp_state.num - 2
         end
     }
 }

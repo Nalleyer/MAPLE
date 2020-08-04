@@ -1,16 +1,18 @@
-use rlua::{Function, Lua, Table, Value};
+use path_slash::PathBufExt;
+use rlua::{Function, Integer, Lua, Table, Value};
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
-use path_slash::PathBufExt;
+
+use imgui::im_str;
 
 #[derive(Debug)]
-enum InfoItem {
+enum UiStatusItem {
     Text(String),
 }
 
-struct Info {
-    items: Vec<InfoItem>,
+struct UiStatus {
+    items: Vec<UiStatusItem>,
 }
 
 fn display_value(value: &Value) -> String {
@@ -25,14 +27,14 @@ fn display_value(value: &Value) -> String {
     }
 }
 
-impl Info {
+impl UiStatus {
     pub fn build(&mut self, lua_table: Table, depth: u32) {
         for pair in lua_table.pairs::<Value, Value>() {
             let (key, value) = pair.expect("getting pair");
             let indent = " ".repeat((depth * 2) as usize);
             match value {
                 Value::Table(inner_table) => {
-                    self.items.push(InfoItem::Text(format!(
+                    self.items.push(UiStatusItem::Text(format!(
                         "{}{}: ",
                         indent,
                         display_value(&key)
@@ -40,7 +42,7 @@ impl Info {
                     self.build(inner_table, depth + 1);
                 }
                 _ => {
-                    self.items.push(InfoItem::Text(format!(
+                    self.items.push(UiStatusItem::Text(format!(
                         "{}{}: {}",
                         indent,
                         display_value(&key),
@@ -49,6 +51,29 @@ impl Info {
                 }
             }
             // ...
+        }
+    }
+}
+
+enum UiSelectionItem {
+    Button { index: usize, text: String },
+}
+
+struct UiSelection {
+    items: Vec<UiSelectionItem>,
+}
+
+impl UiSelection {
+    pub fn build(&mut self, lua_table: Table) {
+        for pair in lua_table.pairs::<Integer, Table>() {
+            let (index, selection_table) = pair.expect("getting pair");
+            let text = selection_table
+                .get::<_, String>("text")
+                .expect("getting selection text");
+            self.items.push(UiSelectionItem::Button {
+                index: index as usize,
+                text: text,
+            })
         }
     }
 }
@@ -98,8 +123,8 @@ impl MpLua {
         Ok(())
     }
 
-    fn build_info(&self) -> Info {
-        let mut info = Info { items: vec![] };
+    fn build_ui_status(&self) -> UiStatus {
+        let mut info = UiStatus { items: vec![] };
         self.lua.context(|lua_ctx| {
             let globals = lua_ctx.globals();
             let func_update = globals
@@ -115,14 +140,61 @@ impl MpLua {
         info
     }
 
-    pub fn make_render<'ui>(&self, ui: &'ui imgui::Ui) -> Box<dyn FnOnce() -> () + 'ui> {
-        let info = self.build_info();
+    fn build_ui_selection(&self) -> UiSelection {
+        let mut selection = UiSelection { items: vec![] };
+        self.lua.context(|lua_ctx| {
+            let globals = lua_ctx.globals();
+            let mp_selection = globals
+                .get::<_, Table>("mp_selection")
+                .expect("getting mp_selection");
+            selection.build(mp_selection);
+            // info.build(state, 0u32);
+        });
+
+        selection
+    }
+
+    pub fn make_status_render<'ui>(&self, ui: &'ui imgui::Ui) -> Box<dyn FnOnce() -> () + 'ui> {
+        let info = self.build_ui_status();
         Box::new(move || {
             // ui.text(ui_str);
             for item in info.items {
                 match item {
-                    InfoItem::Text(text) => {
+                    UiStatusItem::Text(text) => {
                         ui.text(text);
+                    }
+                }
+            }
+        })
+    }
+
+    pub fn run_selection(&self, index: usize) {
+        &self.lua.context(|lua_ctx| {
+            let globals = lua_ctx.globals();
+            let mp_selection = globals
+                .get::<_, Table>("mp_selection")
+                .expect("renderer get mp_selection");
+            let func = mp_selection
+                .get::<_, Table>(index)
+                .expect("renderer get table")
+                .get::<_, Function>("callback")
+                .expect("renderer get callback");
+            func.call::<(), ()>(()).expect("renderer call callback");
+        });
+    }
+
+    pub fn make_slection_render<'ui>(
+        &'ui self,
+        ui: &'ui imgui::Ui,
+    ) -> Box<dyn FnOnce() -> () + 'ui> {
+        let selection = self.build_ui_selection();
+        Box::new(move || {
+            for item in selection.items {
+                match item {
+                    UiSelectionItem::Button { index, text } => {
+                        if ui.button(&im_str!("{}", &text), [100f32, 30f32]) {
+                            self.run_selection(index);
+                        }
                     }
                 }
             }

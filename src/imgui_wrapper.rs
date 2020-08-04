@@ -104,16 +104,19 @@ impl ImGuiWrapper {
         self.imgui.io_mut().delta_time = delta_s;
 
         let ui = self.imgui.frame();
-        let mut _show = true;
 
         // Various ui things
         {
             // Window
-            Window::new(im_str!("Hello world"))
+            Window::new(im_str!("status"))
                 .size([300.0, 600.0], imgui::Condition::FirstUseEver)
                 .position([50.0, 50.0], imgui::Condition::FirstUseEver)
-                .build(&ui, lua.make_render(&ui));
-            //   ui.show_demo_window(&mut show);
+                .build(&ui, lua.make_status_render(&ui));
+
+            Window::new(im_str!("selection"))
+                .size([300.0, 600.0], imgui::Condition::FirstUseEver)
+                .position([350.0, 50.0], imgui::Condition::FirstUseEver)
+                .build(&ui, lua.make_slection_render(&ui));
         }
 
         // Render
