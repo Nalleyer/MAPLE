@@ -12,7 +12,7 @@ mp_state = {
 
 mp_selection = {
     {
-        text = "test",
+        text = "add_num",
         callback = function()
             state.num = state.num + 1
         end
@@ -27,5 +27,5 @@ mp_show = {
 }
 
 function update(delta)
-    mp_state.num = math.random(0, 100)
+    -- mp_state.num = math.random(0, 100)
 end

@@ -1,4 +1,8 @@
 use rlua::{Function, Lua, Table, Value};
+use std::error::Error;
+use std::fs;
+use std::path::PathBuf;
+use path_slash::PathBufExt;
 
 #[derive(Debug)]
 enum InfoItem {
@@ -51,18 +55,47 @@ impl Info {
 
 pub struct MpLua {
     lua: Lua,
+    entry_file: PathBuf,
 }
 
 impl MpLua {
-    pub fn new(file_content: &str) -> Self {
+    pub fn new(entry_file: String) -> Self {
         let lua = Lua::new();
-        lua.context(|lua_ctx| {
+        let path = PathBuf::from(entry_file);
+        let mut mp_lua = MpLua {
+            lua: lua,
+            entry_file: path,
+        };
+        mp_lua.add_require_path().unwrap();
+        mp_lua.load().unwrap();
+        mp_lua
+    }
+
+    fn load(&mut self) -> Result<(), Box<dyn Error>> {
+        let file_content = fs::read_to_string(&self.entry_file)?;
+        self.lua.context(|lua_ctx| {
             lua_ctx
                 .load(&file_content)
                 .exec()
-                .expect("loading lua files");
+                .expect("loading lua files")
         });
-        MpLua { lua }
+        Ok(())
+    }
+
+    fn add_require_path(&mut self) -> Result<(), Box<dyn Error>> {
+        let mut path = self.entry_file.clone();
+        path.pop();
+        let lua_path_base = path.to_slash().unwrap();
+        let lua = format!(
+            r#"package.path = package.path..';'..'./{}/?.lua' print(package.path)"#,
+            lua_path_base
+        );
+        println!("{}", lua);
+
+        self.lua.context(|lua_ctx| {
+            lua_ctx.load(&lua).exec().expect("add require path to lua");
+        });
+        Ok(())
     }
 
     fn build_info(&self) -> Info {
@@ -77,7 +110,6 @@ impl MpLua {
                 .get::<_, Table>("mp_state")
                 .expect("getting mp_state");
             info.build(state, 0u32);
-            // = .get("num").unwrap();
         });
 
         info

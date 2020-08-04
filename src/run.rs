@@ -9,17 +9,14 @@ use ggez::{Context, GameResult};
 
 use crate::imgui_wrapper::ImGuiWrapper;
 
-use std::fs;
-
 pub fn run(input_path: &str) -> Result<(), Box<dyn Error>> {
-    let file_content = fs::read_to_string(&input_path)?;
-    let mp_lua = MpLua::new(&file_content);
+    // let file_content = fs::read_to_string(&input_path)?;
+    let mp_lua = MpLua::new(String::from(input_path));
     ggez_main(mp_lua)?;
     Ok(())
 }
 
 struct MainState {
-    pos_x: f32,
     imgui_wrapper: ImGuiWrapper,
     hidpi_factor: f32,
     lua: MpLua,
@@ -29,7 +26,6 @@ impl MainState {
     fn new(mut ctx: &mut Context, hidpi_factor: f32, lua: MpLua) -> GameResult<MainState> {
         let imgui_wrapper = ImGuiWrapper::new(&mut ctx);
         let s = MainState {
-            pos_x: 0.0,
             imgui_wrapper,
             hidpi_factor,
             lua,
@@ -40,7 +36,6 @@ impl MainState {
 
 impl EventHandler for MainState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
-        self.pos_x = self.pos_x % 800.0 + 1.0;
         Ok(())
     }
 
@@ -49,15 +44,7 @@ impl EventHandler for MainState {
 
         // Render game stuff
         {
-            let circle = graphics::Mesh::new_circle(
-                ctx,
-                graphics::DrawMode::fill(),
-                na::Point2::new(self.pos_x, 380.0),
-                100.0,
-                2.0,
-                graphics::WHITE,
-            )?;
-            graphics::draw(ctx, &circle, (na::Point2::new(0.0, 0.0),))?;
+            // graphics::draw(ctx, &circle, (na::Point2::new(0.0, 0.0),))?;
         }
 
         // Render game ui

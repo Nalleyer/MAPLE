@@ -16,3 +16,4 @@ gfx_core = "0.9.2"
 gfx_device_gl = "0.16.2"
 
 rlua = "0.17"
+path-slash = "0.1.3"
