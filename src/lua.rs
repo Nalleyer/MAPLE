@@ -114,6 +114,16 @@ impl MpLua {
         mp_lua
     }
 
+    pub fn run_awake(&self) -> rlua::Result<()> {
+        self.lua.context(|lua_ctx| {
+            let globals = lua_ctx.globals();
+            let awake_func = globals.get::<_, Function>("awake")?;
+            awake_func.call::<_, ()>(())?;
+            Ok(())
+        })?;
+        Ok(())
+    }
+
     fn load(&mut self) -> Result<(), Box<dyn Error>> {
         let file_content = fs::read_to_string(&self.entry_file)?;
         self.lua
@@ -140,7 +150,6 @@ impl MpLua {
         self.lua.context(|lua_ctx| {
             let globals = lua_ctx.globals();
             let func_update = globals.get::<_, Function>("update")?;
-            // TODO: context
             let delta = ggez::timer::delta(&ctx).as_secs_f64();
             let time_since_start = ggez::timer::time_since_start(&ctx).as_secs_f64();
             func_update.call::<_, ()>((delta, time_since_start))?;
@@ -163,7 +172,11 @@ impl MpLua {
         Ok(selection)
     }
 
-    pub fn make_status_render<'ui>(&self, ui: &'ui imgui::Ui, ctx: &Context) -> Box<dyn FnOnce() -> () + 'ui> {
+    pub fn make_status_render<'ui>(
+        &self,
+        ui: &'ui imgui::Ui,
+        ctx: &Context,
+    ) -> Box<dyn FnOnce() -> () + 'ui> {
         match self.build_ui_status(ctx) {
             Ok(status) => {
                 Box::new(move || {
@@ -211,9 +224,7 @@ impl MpLua {
                     }
                 }
             }),
-            None => {
-                Box::new(move || {})
-            }
+            None => Box::new(move || {}),
         }
     }
 }

@@ -51,3 +51,7 @@ function update(delta, time_since_start)
     mp_state.time_since_start = time_since_start
     mp_state.fps = math.floor(1 / delta)
 end
+
+function awake()
+    print("awake")
+end
