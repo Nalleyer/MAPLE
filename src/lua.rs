@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 use std::rc::Rc;
 
+use ggez::Context;
 use imgui::im_str;
 
 #[derive(Debug)]
@@ -134,12 +135,15 @@ impl MpLua {
         Ok(())
     }
 
-    fn build_ui_status(&self) -> rlua::Result<UiStatus> {
+    fn build_ui_status(&self, ctx: &Context) -> rlua::Result<UiStatus> {
         let mut info = UiStatus { items: vec![] };
         self.lua.context(|lua_ctx| {
             let globals = lua_ctx.globals();
             let func_update = globals.get::<_, Function>("update")?;
-            func_update.call::<_, ()>(0)?;
+            // TODO: context
+            let delta = ggez::timer::delta(&ctx).as_secs_f64();
+            let time_since_start = ggez::timer::time_since_start(&ctx).as_secs_f64();
+            func_update.call::<_, ()>((delta, time_since_start))?;
             let state = globals.get::<_, Table>("mp_state")?;
             info.build(state, 0u32)?;
             Ok(())
@@ -159,8 +163,8 @@ impl MpLua {
         Ok(selection)
     }
 
-    pub fn make_status_render<'ui>(&self, ui: &'ui imgui::Ui) -> Box<dyn FnOnce() -> () + 'ui> {
-        match self.build_ui_status() {
+    pub fn make_status_render<'ui>(&self, ui: &'ui imgui::Ui, ctx: &Context) -> Box<dyn FnOnce() -> () + 'ui> {
+        match self.build_ui_status(ctx) {
             Ok(status) => {
                 Box::new(move || {
                     // ui.text(ui_str);

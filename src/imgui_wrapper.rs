@@ -110,7 +110,7 @@ impl ImGuiWrapper {
             Window::new(im_str!("status"))
                 .size([300.0, 600.0], imgui::Condition::FirstUseEver)
                 .position([50.0, 50.0], imgui::Condition::FirstUseEver)
-                .build(&ui, lua.make_status_render(&ui));
+                .build(&ui, lua.make_status_render(&ui, ctx));
 
             Window::new(im_str!("selection"))
                 .size([300.0, 600.0], imgui::Condition::FirstUseEver)

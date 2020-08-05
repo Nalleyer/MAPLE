@@ -44,6 +44,10 @@ mp_show = {
     -- }
 }
 
-function update(delta)
+function update(delta, time_since_start)
     -- mp_state.num = math.random(0, 100)
+    -- print(delta, time_since_start)
+    mp_state.delta = delta
+    mp_state.time_since_start = time_since_start
+    mp_state.fps = math.floor(1 / delta)
 end
