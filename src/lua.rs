@@ -4,6 +4,8 @@ use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 
+use std::rc::Rc;
+
 use imgui::im_str;
 
 #[derive(Debug)]
@@ -86,6 +88,7 @@ impl UiSelection {
 pub struct MpLua {
     lua: Lua,
     entry_file: PathBuf,
+    selections: Option<Rc<UiSelection>>,
 }
 
 impl MpLua {
@@ -95,9 +98,18 @@ impl MpLua {
         let mut mp_lua = MpLua {
             lua,
             entry_file: path,
+            selections: None,
         };
         mp_lua.add_require_path().unwrap();
         mp_lua.load().unwrap();
+        match mp_lua.build_ui_selection() {
+            Ok(selections) => {
+                mp_lua.selections.replace(Rc::new(selections));
+            }
+            Err(e) => {
+                println!("{:?}", e);
+            }
+        };
         mp_lua
     }
 
@@ -183,20 +195,19 @@ impl MpLua {
         &'ui self,
         ui: &'ui imgui::Ui,
     ) -> Box<dyn FnOnce() -> () + 'ui> {
-        match self.build_ui_selection() {
-            Ok(selection) => Box::new(move || {
-                for item in selection.items {
+        match &self.selections {
+            Some(rc_selections) => Box::new(move || {
+                for item in &rc_selections.items {
                     match item {
                         UiSelectionItem::Button { index, text } => {
                             if ui.button(&im_str!("{}", &text), [100f32, 30f32]) {
-                                log_lua_result(&self.run_selection(index));
+                                log_lua_result(&self.run_selection(*index));
                             }
                         }
                     }
                 }
             }),
-            Err(e) => {
-                println!("{:?}", e);
+            None => {
                 Box::new(move || {})
             }
         }

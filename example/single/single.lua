@@ -22,6 +22,18 @@ mp_selection = {
         callback = function()
             mp_state.num = mp_state.num - 2
         end
+    },
+    {
+        text = "error",
+        callback = function()
+            not_exist.field = 3
+        end,
+    },
+    {
+        text = "insert",
+        callback = function()
+            mp_state[math.random(1, 10)] = math.random(1, 10)
+        end,
     }
 }
 
