@@ -10,13 +10,13 @@ use crate::new::new;
 
 fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("maple")
-        .version("0.1.0")
+        .version("0.1.1")
         .author("nalleyer")
         .about("make prototype easy")
         .subcommand(
             SubCommand::with_name("run")
                 .about("run you lua folder or file")
-                .version("0.1.0")
+                .version("0.1.1")
                 .author("nalleyer")
                 .arg(Arg::with_name("INPUT").required(true)),
         )

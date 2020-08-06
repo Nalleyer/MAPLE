@@ -10,7 +10,7 @@ use crate::imgui_wrapper::ImGuiWrapper;
 
 pub fn run(input_path: &str) -> Result<(), Box<dyn Error>> {
     // let file_content = fs::read_to_string(&input_path)?;
-    let mp_lua = MpLua::new(String::from(input_path));
+    let mut mp_lua = MpLua::new(String::from(input_path));
     mp_lua.run_awake()?;
     ggez_main(mp_lua)?;
     Ok(())

@@ -54,4 +54,8 @@ end
 
 function awake()
     print("awake")
+    table.insert(mp_selection, {
+        text = "awake selection",
+        callback = function() print("emm") end,
+    })
 end

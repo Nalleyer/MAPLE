@@ -103,24 +103,18 @@ impl MpLua {
         };
         mp_lua.add_require_path().unwrap();
         mp_lua.load().unwrap();
-        match mp_lua.build_ui_selection() {
-            Ok(selections) => {
-                mp_lua.selections.replace(Rc::new(selections));
-            }
-            Err(e) => {
-                println!("{:?}", e);
-            }
-        };
         mp_lua
     }
 
-    pub fn run_awake(&self) -> rlua::Result<()> {
+    pub fn run_awake(&mut self) -> rlua::Result<()> {
         self.lua.context(|lua_ctx| {
             let globals = lua_ctx.globals();
             let awake_func = globals.get::<_, Function>("awake")?;
             awake_func.call::<_, ()>(())?;
             Ok(())
         })?;
+        let selections = self.build_ui_selection()?;
+        self.selections.replace(Rc::new(selections));
         Ok(())
     }
 
