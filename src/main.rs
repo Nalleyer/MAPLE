@@ -2,28 +2,31 @@ use clap::{App, Arg, SubCommand};
 
 mod imgui_wrapper;
 mod lua;
-mod run;
 mod new;
+mod run;
+mod signal;
 
-use crate::run::run;
 use crate::new::new;
+use crate::run::run;
+
+const VERSION: &str = "0.1.2";
 
 fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("maple")
-        .version("0.1.1")
+        .version(VERSION)
         .author("nalleyer")
         .about("make prototype easy")
         .subcommand(
             SubCommand::with_name("run")
                 .about("run you lua folder or file")
-                .version("0.1.1")
+                .version(VERSION)
                 .author("nalleyer")
                 .arg(Arg::with_name("INPUT").required(true)),
         )
         .subcommand(
             SubCommand::with_name("new")
                 .about("generate lua scaffold")
-                .version("0.1.0")
+                .version(VERSION)
                 .author("nalleyer")
                 .arg(Arg::with_name("FILENAME").required(true)),
         )
@@ -38,7 +41,6 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         let file_name = matches.value_of("FILENAME").unwrap();
         new(&file_name)?;
     }
-
 
     Ok(())
 }

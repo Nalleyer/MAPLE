@@ -12,6 +12,18 @@ mp_state = {
 
 mp_selection = {
     {
+        text = "reload button",
+        callback = function()
+            local text = mp_selection[1].text
+            if string.len(text) < 20 then
+                mp_selection[1].text = text.."."
+            else
+                mp_selection[1].text = "reload button"
+            end
+            mp_reload_selection()
+        end
+    },
+    {
         text = "add_num",
         callback = function()
             mp_state.num = mp_state.num + 1
@@ -34,7 +46,7 @@ mp_selection = {
         callback = function()
             mp_state[math.random(1, 10)] = math.random(1, 10)
         end,
-    }
+    },
 }
 
 mp_show = {

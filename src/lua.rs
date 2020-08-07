@@ -9,6 +9,8 @@ use std::rc::Rc;
 use ggez::Context;
 use imgui::im_str;
 
+use crate::signal::{SIGNAL_RELOAD_SELECTION, SIGNAL_TABLE};
+
 #[derive(Debug)]
 enum UiStatusItem {
     Text(String),
@@ -106,15 +108,84 @@ impl MpLua {
         mp_lua
     }
 
-    pub fn run_awake(&mut self) -> rlua::Result<()> {
+    pub fn awake(&mut self) -> rlua::Result<()> {
+        self.run_awake()?;
+        self.load_ui_selection()?;
+        self.clear_signals()?;
+        self.inject_functions()?;
+        self.lua.load_from_std_lib(rlua::StdLib::STRING)?;
+        Ok(())
+    }
+
+    fn inject_functions(&mut self) -> rlua::Result<()> {
+        self.lua.context(|lua_ctx| {
+            let globals = lua_ctx.globals();
+            let reload_selection = lua_ctx.create_function(|lua_ctx, ()| {
+                lua_ctx
+                    .load(&format!(
+                        "table.insert({}, {})",
+                        SIGNAL_TABLE, SIGNAL_RELOAD_SELECTION
+                    ))
+                    .exec()?;
+                Ok(())
+            })?;
+            globals.set("mp_reload_selection", reload_selection)?;
+            Ok(())
+        })?;
+        Ok(())
+    }
+
+    pub fn tick_signal(&mut self) -> rlua::Result<()> {
+        let mut signals = vec![];
+        self.lua.context(|lua_ctx| {
+            let globals = lua_ctx.globals();
+            let lua_signals = globals.get::<_, Table>(SIGNAL_TABLE)?;
+            for pair in lua_signals.pairs::<Value, Value>() {
+                let (_, signal) = pair?;
+                if let Value::Integer(s) = signal {
+                    signals.push(s);
+                }
+            }
+            Ok(())
+        })?;
+        for signal in signals {
+            self.run_signal(signal)?;
+        }
+        self.clear_signals()?;
+        Ok(())
+    }
+
+    fn clear_signals(&mut self) -> rlua::Result<()> {
+        self.lua.context(|lua_ctx| {
+            lua_ctx.load(&format!("{} = {{}}", SIGNAL_TABLE)).exec()?;
+            Ok(())
+        })?;
+        Ok(())
+    }
+
+    fn run_signal(&mut self, signal: i64) -> rlua::Result<()> {
+        match signal {
+            SIGNAL_RELOAD_SELECTION => {
+                self.load_ui_selection()?;
+            }
+            _ => {}
+        };
+        Ok(())
+    }
+
+    fn load_ui_selection(&mut self) -> rlua::Result<()> {
+        let selections = self.build_ui_selection()?;
+        self.selections.replace(Rc::new(selections));
+        Ok(())
+    }
+
+    fn run_awake(&mut self) -> rlua::Result<()> {
         self.lua.context(|lua_ctx| {
             let globals = lua_ctx.globals();
             let awake_func = globals.get::<_, Function>("awake")?;
             awake_func.call::<_, ()>(())?;
             Ok(())
         })?;
-        let selections = self.build_ui_selection()?;
-        self.selections.replace(Rc::new(selections));
         Ok(())
     }
 
@@ -185,7 +256,7 @@ impl MpLua {
                 })
             }
             Err(e) => {
-                println!("{:?}", e);
+                println!("make render: {:?}", e);
                 Box::new(move || {})
             }
         }
@@ -211,7 +282,7 @@ impl MpLua {
                 for item in &rc_selections.items {
                     match item {
                         UiSelectionItem::Button { index, text } => {
-                            if ui.button(&im_str!("{}", &text), [100f32, 30f32]) {
+                            if ui.button(&im_str!("{}", &text), [200f32, 30f32]) {
                                 log_lua_result(&self.run_selection(*index));
                             }
                         }

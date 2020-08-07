@@ -11,7 +11,7 @@ use crate::imgui_wrapper::ImGuiWrapper;
 pub fn run(input_path: &str) -> Result<(), Box<dyn Error>> {
     // let file_content = fs::read_to_string(&input_path)?;
     let mut mp_lua = MpLua::new(String::from(input_path));
-    mp_lua.run_awake()?;
+    mp_lua.awake()?;
     ggez_main(mp_lua)?;
     Ok(())
 }
@@ -36,6 +36,12 @@ impl MainState {
 
 impl EventHandler for MainState {
     fn update(&mut self, _ctx: &mut Context) -> GameResult<()> {
+        match self.lua.tick_signal() {
+            Ok(_) => {}
+            Err(e) => {
+                println!("ticksignal: {}", e);
+            }
+        };
         Ok(())
     }
 
