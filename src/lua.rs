@@ -118,18 +118,9 @@ impl MpLua {
     }
 
     fn inject_functions(&mut self) -> rlua::Result<()> {
+        let mp_lib = std::include_bytes!("./lua_lib/signal.lua");
         self.lua.context(|lua_ctx| {
-            let globals = lua_ctx.globals();
-            let reload_selection = lua_ctx.create_function(|lua_ctx, ()| {
-                lua_ctx
-                    .load(&format!(
-                        "table.insert({}, {})",
-                        SIGNAL_TABLE, SIGNAL_RELOAD_SELECTION
-                    ))
-                    .exec()?;
-                Ok(())
-            })?;
-            globals.set("mp_reload_selection", reload_selection)?;
+            lua_ctx.load(&String::from_utf8_lossy(mp_lib).into_owned()).exec()?;
             Ok(())
         })?;
         Ok(())
