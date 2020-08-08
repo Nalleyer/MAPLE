@@ -7,13 +7,13 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use ggez::Context;
-use imgui::im_str;
+use imgui::{im_str, ImString};
 
 use crate::signal::{SIGNAL_RELOAD_SELECTION, SIGNAL_TABLE};
 
 #[derive(Debug)]
 enum UiStatusItem {
-    Text(String),
+    Text(ImString),
 }
 
 pub fn log_lua_result(result: &rlua::Result<()>) {
@@ -45,7 +45,7 @@ impl UiStatus {
             let indent = " ".repeat((depth * 2) as usize);
             match value {
                 Value::Table(inner_table) => {
-                    self.items.push(UiStatusItem::Text(format!(
+                    self.items.push(UiStatusItem::Text(im_str!(
                         "{}{}: ",
                         indent,
                         display_value(&key)
@@ -53,7 +53,8 @@ impl UiStatus {
                     self.build(inner_table, depth + 1)?;
                 }
                 _ => {
-                    self.items.push(UiStatusItem::Text(format!(
+                    // println!("value = {}", display_value(&value));
+                    self.items.push(UiStatusItem::Text(im_str!(
                         "{}{}: {}",
                         indent,
                         display_value(&key),
@@ -118,7 +119,7 @@ impl MpLua {
     }
 
     fn inject_functions(&mut self) -> rlua::Result<()> {
-        let mp_lib = std::include_bytes!("./lua_lib/signal.lua");
+        let mp_lib = std::include_bytes!("../resources/lua/signal.lua");
         self.lua.context(|lua_ctx| {
             lua_ctx.load(&String::from_utf8_lossy(mp_lib).into_owned()).exec()?;
             Ok(())
@@ -236,7 +237,6 @@ impl MpLua {
         match self.build_ui_status(ctx) {
             Ok(status) => {
                 Box::new(move || {
-                    // ui.text(ui_str);
                     for item in status.items {
                         match item {
                             UiStatusItem::Text(text) => {
@@ -244,6 +244,7 @@ impl MpLua {
                             }
                         }
                     }
+                    ui.text(im_str!("中文测试"));
                 })
             }
             Err(e) => {

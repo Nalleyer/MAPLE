@@ -49,8 +49,6 @@ impl ImGuiWrapper {
             }
         };
 
-        // Renderer
-        let renderer = Renderer::init(&mut imgui, &mut *factory, shaders).unwrap();
 
         {
             let io = imgui.io_mut();
@@ -77,6 +75,30 @@ impl ImGuiWrapper {
             io[Key::Y] = KeyCode::Y as _;
             io[Key::Z] = KeyCode::Z as _;
         }
+
+        let font_size = 18f32;
+        imgui.set_ini_filename(None);
+        println!("add font");
+        imgui.fonts().add_font(&[
+            FontSource::DefaultFontData {
+                config: Some(FontConfig {
+                    size_pixels: font_size,
+                    ..FontConfig::default()
+                }),
+            },
+            FontSource::TtfData {
+                data: include_bytes!("../resources/font/sarasa-ui-sc-regular.ttf"),
+                size_pixels: font_size,
+                config: Some(FontConfig {
+                    rasterizer_multiply: 1.75,
+                    glyph_ranges: FontGlyphRanges::chinese_simplified_common(),
+                    ..FontConfig::default()
+                }),
+            },
+        ]);
+
+        // Renderer
+        let renderer = Renderer::init(&mut imgui, &mut *factory, shaders).unwrap();
 
         // Create instance
         Self {
