@@ -128,7 +128,6 @@ pub fn ggez_main(mp_lua: MpLua) -> ggez::GameResult {
     let (ref mut ctx, event_loop) = &mut cb.build()?;
 
     let hidpi_factor = event_loop.get_primary_monitor().get_hidpi_factor() as f32;
-    println!("main hidpi_factor = {}", hidpi_factor);
 
     let state = &mut MainState::new(ctx, hidpi_factor, mp_lua)?;
 

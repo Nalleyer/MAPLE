@@ -110,11 +110,11 @@ impl MpLua {
     }
 
     pub fn awake(&mut self) -> rlua::Result<()> {
-        self.run_awake()?;
         self.load_ui_selection()?;
         self.clear_signals()?;
         self.inject_functions()?;
         self.lua.load_from_std_lib(rlua::StdLib::STRING)?;
+        self.run_awake()?;
         Ok(())
     }
 
@@ -196,8 +196,6 @@ impl MpLua {
             r#"package.path = package.path..';'..'./{}/?.lua' print(package.path)"#,
             lua_path_base
         );
-        println!("{}", lua);
-
         self.lua.context(|lua_ctx| lua_ctx.load(&lua).exec())?;
         Ok(())
     }

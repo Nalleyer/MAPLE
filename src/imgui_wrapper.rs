@@ -78,7 +78,6 @@ impl ImGuiWrapper {
 
         let font_size = 18f32;
         imgui.set_ini_filename(None);
-        println!("add font");
         imgui.fonts().add_font(&[
             FontSource::DefaultFontData {
                 config: Some(FontConfig {
