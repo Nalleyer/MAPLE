@@ -244,7 +244,6 @@ impl MpLua {
                             }
                         }
                     }
-                    ui.text(im_str!("中文测试"));
                 })
             }
             Err(e) => {
