@@ -105,7 +105,9 @@ impl MpLua {
             selections: None,
         };
         mp_lua.add_require_path().unwrap();
-        mp_lua.load().unwrap();
+        if let Err(e) = mp_lua.load() {
+            panic!("{}", e);
+        }
         mp_lua
     }
 
