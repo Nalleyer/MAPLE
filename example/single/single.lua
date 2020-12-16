@@ -10,6 +10,11 @@ mp_state = {
     }
 }
 
+mp_led = {
+    [0] = true,
+    [255] = true,
+}
+
 mp_selection = {
     {
         text = "reload button",
@@ -56,12 +61,18 @@ mp_show = {
     -- }
 }
 
+local function update_led(time_since_start)
+    mp_led[1] = time_since_start % 1 > 0.5
+end
+
 function update(delta, time_since_start)
     -- mp_state.num = math.random(0, 100)
     -- print(delta, time_since_start)
     mp_state.delta = delta
     mp_state.time_since_start = time_since_start
     mp_state.fps = math.floor(1 / delta)
+
+    update_led(time_since_start)
 end
 
 function awake()

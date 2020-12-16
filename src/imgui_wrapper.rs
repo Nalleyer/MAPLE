@@ -10,6 +10,8 @@ use imgui_gfx_renderer::*;
 use crate::lua::*;
 use std::time::Instant;
 
+const LED_CELL_SIZE: f32 = 16.0;
+
 #[derive(Copy, Clone, PartialEq, Debug, Default)]
 struct MouseState {
     pos: (i32, i32),
@@ -137,6 +139,10 @@ impl ImGuiWrapper {
                 .size([300.0, 600.0], imgui::Condition::FirstUseEver)
                 .position([350.0, 50.0], imgui::Condition::FirstUseEver)
                 .build(&ui, lua.make_slection_render(&ui));
+            Window::new(im_str!("led"))
+                .size([300.0, 300.0], imgui::Condition::FirstUseEver) 
+                .position([600.0, 100.0], imgui::Condition::FirstUseEver)
+                .build(&ui, lua.make_led_render(&ui, LED_CELL_SIZE));
         }
 
         // Render

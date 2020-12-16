@@ -89,6 +89,32 @@ impl UiSelection {
     }
 }
 
+const LED_SIZE: usize = 16;
+
+pub struct Led {
+    pub buf: [bool; LED_SIZE * LED_SIZE],
+}
+
+impl Default for Led {
+    fn default() -> Self {
+        Led {
+            buf: [false; LED_SIZE * LED_SIZE],
+        }
+    }
+}
+
+impl Led {
+    pub fn build(&mut self, lua_table: Table) -> rlua::Result<()> {
+        for pair in lua_table.pairs::<Integer, bool>() {
+            let (index, is_on) = pair?;
+            if index >= 0 && (index as usize) < self.buf.len() {
+                self.buf[index as usize] = is_on;
+            }
+        }
+        Ok(())
+    }
+}
+
 pub struct MpLua {
     lua: Lua,
     entry_file: PathBuf,
@@ -123,7 +149,9 @@ impl MpLua {
     fn inject_functions(&mut self) -> rlua::Result<()> {
         let mp_lib = std::include_bytes!("../resources/lua/signal.lua");
         self.lua.context(|lua_ctx| {
-            lua_ctx.load(&String::from_utf8_lossy(mp_lib).into_owned()).exec()?;
+            lua_ctx
+                .load(&String::from_utf8_lossy(mp_lib).into_owned())
+                .exec()?;
             Ok(())
         })?;
         Ok(())
@@ -229,23 +257,32 @@ impl MpLua {
         Ok(selection)
     }
 
+    fn build_ui_led(&self) -> rlua::Result<Led> {
+        let mut led: Led = Default::default();
+        self.lua.context(|lua_ctx| {
+            let globals = lua_ctx.globals();
+            let mp_led = globals.get::<_, Table>("mp_led")?;
+            led.build(mp_led)?;
+            Ok(())
+        })?;
+        Ok(led)
+    }
+
     pub fn make_status_render<'ui>(
         &self,
         ui: &'ui imgui::Ui,
         ctx: &Context,
     ) -> Box<dyn FnOnce() -> () + 'ui> {
         match self.build_ui_status(ctx) {
-            Ok(status) => {
-                Box::new(move || {
-                    for item in status.items {
-                        match item {
-                            UiStatusItem::Text(text) => {
-                                ui.text(text);
-                            }
+            Ok(status) => Box::new(move || {
+                for item in status.items {
+                    match item {
+                        UiStatusItem::Text(text) => {
+                            ui.text(text);
                         }
                     }
-                })
-            }
+                }
+            }),
             Err(e) => {
                 println!("make render: {:?}", e);
                 Box::new(move || {})
@@ -281,6 +318,39 @@ impl MpLua {
                 }
             }),
             None => Box::new(move || {}),
+        }
+    }
+
+    pub fn make_led_render<'ui>(
+        &'ui self,
+        ui: &'ui imgui::Ui,
+        cell_size: f32,
+    ) -> Box<dyn FnOnce() -> () + 'ui> {
+        match self.build_ui_led() {
+            Ok(led) => Box::new(move || {
+                let c0 = [0.5, 1.0, 1.0, 1.0];
+                let c1 = [0.1, 0.1, 0.1, 1.0];
+                let draw_list = ui.get_window_draw_list();
+                let win_pos = ui.window_pos();
+                for (i, b) in led.buf.iter().enumerate() {
+                    let row = (i / LED_SIZE) as f32;
+                    let col = (i % LED_SIZE) as f32;
+                    let x1 = row * cell_size + win_pos[0] + 32.0;
+                    let y1 = col * cell_size + win_pos[1] + 32.0;
+                    draw_list.add_rect_filled_multicolor(
+                        [x1, y1],
+                        [x1 + cell_size - 4.0, y1 + cell_size - 4.0],
+                        if *b { c0 } else { c1 },
+                        if *b { c0 } else { c1 },
+                        if *b { c0 } else { c1 },
+                        if *b { c0 } else { c1 },
+                    );
+                }
+            }),
+            Err(e) => {
+                println!("make led render: {:?}", e);
+                Box::new(move || {})
+            }
         }
     }
 }
