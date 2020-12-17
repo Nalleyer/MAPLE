@@ -51,7 +51,6 @@ impl ImGuiWrapper {
             }
         };
 
-
         {
             let io = imgui.io_mut();
             io[Key::Tab] = KeyCode::Tab as _;
@@ -140,7 +139,7 @@ impl ImGuiWrapper {
                 .position([350.0, 50.0], imgui::Condition::FirstUseEver)
                 .build(&ui, lua.make_slection_render(&ui));
             Window::new(im_str!("led"))
-                .size([300.0, 300.0], imgui::Condition::FirstUseEver) 
+                .size([300.0, 300.0], imgui::Condition::FirstUseEver)
                 .position([600.0, 100.0], imgui::Condition::FirstUseEver)
                 .build(&ui, lua.make_led_render(&ui, LED_CELL_SIZE));
         }

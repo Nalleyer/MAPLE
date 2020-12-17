@@ -261,8 +261,11 @@ impl MpLua {
         let mut led: Led = Default::default();
         self.lua.context(|lua_ctx| {
             let globals = lua_ctx.globals();
-            let mp_led = globals.get::<_, Table>("mp_led")?;
-            led.build(mp_led)?;
+            let is_have_led = globals.contains_key("mp_led")?;
+            if is_have_led {
+                let mp_led = globals.get::<_, Table>("mp_led")?;
+                led.build(mp_led)?;
+            }
             Ok(())
         })?;
         Ok(led)
@@ -272,7 +275,7 @@ impl MpLua {
         &self,
         ui: &'ui imgui::Ui,
         ctx: &Context,
-    ) -> Box<dyn FnOnce() -> () + 'ui> {
+    ) -> Box<dyn FnOnce() + 'ui> {
         match self.build_ui_status(ctx) {
             Ok(status) => Box::new(move || {
                 for item in status.items {
@@ -304,7 +307,7 @@ impl MpLua {
     pub fn make_slection_render<'ui>(
         &'ui self,
         ui: &'ui imgui::Ui,
-    ) -> Box<dyn FnOnce() -> () + 'ui> {
+    ) -> Box<dyn FnOnce() + 'ui> {
         match &self.selections {
             Some(rc_selections) => Box::new(move || {
                 for item in &rc_selections.items {
@@ -325,7 +328,7 @@ impl MpLua {
         &'ui self,
         ui: &'ui imgui::Ui,
         cell_size: f32,
-    ) -> Box<dyn FnOnce() -> () + 'ui> {
+    ) -> Box<dyn FnOnce() + 'ui> {
         match self.build_ui_led() {
             Ok(led) => Box::new(move || {
                 let c0 = [0.5, 1.0, 1.0, 1.0];
